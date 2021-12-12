@@ -1,6 +1,5 @@
 import DiscordJS, { Intents, Message } from 'discord.js'
-import dotenv from 'dotenv'
-dotenv.config()
+import 'dotenv/config'
 
 const client = new DiscordJS.Client({
 	intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILDS],
@@ -17,6 +16,8 @@ client.on('messageCreate', msg => {
 				msg.channel.send('n i e')
 			}, 3000)
 		})
+	} else if (msg.author.tag === 'Dewidos#8177') {
+		msg.reply('Siema Dewidos!')
 	}
 })
 
