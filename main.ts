@@ -1,4 +1,4 @@
-import DiscordJS, { Intents } from 'discord.js'
+import DiscordJS, { Intents, Message } from 'discord.js'
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -11,7 +11,13 @@ client.on('ready', () => {
 })
 
 client.on('messageCreate', msg => {
-	console.log(msg.content)
+	if (msg.content === 'empty message pls') {
+		msg.channel.sendTyping().then(() => {
+			setTimeout(() => {
+				msg.channel.send('')
+			}, 3000)
+		})
+	}
 })
 
 client.login(process.env.TOKEN)
