@@ -1,0 +1,15 @@
+{
+	"name": "cordbot",
+	"version": "1.0.0",
+	"description": "A discord bot to make discord more fun to everyone.",
+	"main": "main.ts",
+	"scripts": {
+		"test": "ts-node main"
+	},
+	"author": "Dawid Popiel",
+	"license": "ISC",
+	"dependencies": {
+		"discord.js": "^13.3.1",
+		"dotenv": "^10.0.0"
+	}
+}
