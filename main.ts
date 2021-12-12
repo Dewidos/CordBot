@@ -1,4 +1,4 @@
-import DiscordJS, { Intents, Message } from 'discord.js'
+import DiscordJS, { Intents } from 'discord.js'
 import 'dotenv/config'
 
 const playersToStalk: Array<string> = []
