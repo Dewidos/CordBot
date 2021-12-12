@@ -14,7 +14,7 @@ client.on('messageCreate', msg => {
 	if (msg.content === 'empty message pls') {
 		msg.channel.sendTyping().then(() => {
 			setTimeout(() => {
-				msg.channel.send('')
+				msg.channel.send('n i e')
 			}, 3000)
 		})
 	}
