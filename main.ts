@@ -33,7 +33,9 @@ client.on('interactionCreate', async interaction => {
 })
 
 client.on('messageCreate', msg => {
-	if (playersToStalk.indexOf(msg.author.id) != -1) {
+	if (msg.channel.id === process.env.REPEATER_CHANNEL) {
+		msg.channel.send(msg.content)
+	} else if (playersToStalk.indexOf(msg.author.id) != -1) {
 		msg.reply(`Siema ${msg.author.username}!`)
 	}
 })
