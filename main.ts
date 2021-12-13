@@ -1,4 +1,4 @@
-import DiscordJS, { Intents } from 'discord.js'
+import DiscordJS, { Intents, MessageAttachment } from 'discord.js'
 import 'dotenv/config'
 
 const playersToStalk: Array<string> = []
@@ -33,8 +33,15 @@ client.on('interactionCreate', async interaction => {
 })
 
 client.on('messageCreate', msg => {
-	if (msg.channel.id === process.env.REPEATER_CHANNEL && !msg.author.bot && msg.content != '') {
-		msg.channel.send(msg.content)
+	if (msg.channel.id === process.env.REPEATER_CHANNEL && !msg.author.bot) {
+		const attachmentsArray: Array<MessageAttachment> = []
+
+		if (msg.attachments.size > 0) msg.attachments.forEach(att => attachmentsArray.push(att))
+
+		msg.channel.send({
+			content: msg.content == '' ? '\n' : msg.content,
+			files: attachmentsArray,
+		})
 	} else if (playersToStalk.indexOf(msg.author.id) != -1) {
 		msg.reply(`Siema ${msg.author.username}!`)
 	}
