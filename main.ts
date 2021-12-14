@@ -32,19 +32,21 @@ client.on('interactionCreate', async interaction => {
 	}
 })
 
-client.on('messageCreate', msg => {
+client.on('messageCreate', async msg => {
 	if (msg.channel.id === process.env.REPEATER_CHANNEL && !msg.author.bot) {
 		const attachmentsArray: Array<MessageAttachment> = []
 
 		if (msg.attachments.size > 0) msg.attachments.forEach(att => attachmentsArray.push(att))
 
-		msg.channel.send({
+		await msg.channel.send({
 			content: msg.content == '' ? '\n' : msg.content,
 			files: attachmentsArray,
 		})
 	} else if (playersToStalk.indexOf(msg.author.id) != -1) {
-		msg.reply(`Siema ${msg.author.username}!`)
+		await msg.reply(`Siema ${msg.author.username}!`)
 	}
+
+	if (msg.content.toLowerCase().includes('sus')) msg.reply('ඞ')
 })
 
 client.login(process.env.TOKEN)
