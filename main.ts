@@ -33,7 +33,9 @@ client.on('interactionCreate', async interaction => {
 })
 
 client.on('messageCreate', async msg => {
-	if (msg.channel.id === process.env.REPEATER_CHANNEL && !msg.author.bot) {
+	if (msg.author.bot) return
+
+	if (msg.channel.id === process.env.REPEATER_CHANNEL) {
 		const attachmentsArray: Array<MessageAttachment> = []
 
 		if (msg.attachments.size > 0) msg.attachments.forEach(att => attachmentsArray.push(att))
