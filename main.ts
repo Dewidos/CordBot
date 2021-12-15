@@ -1,4 +1,4 @@
-import DiscordJS, { Intents, MessageAttachment } from 'discord.js'
+import DiscordJS, { Intents, MessageAttachment, MessageEmbed } from 'discord.js'
 import 'dotenv/config'
 
 const playersToStalk: Array<string> = []
@@ -51,6 +51,9 @@ client.on('interactionCreate', async interaction => {
 				await interaction.reply('Od teraz nie będę Ciebie stalkować :(')
 			}
 			break
+		case 'ship':
+			shipHandler(interaction)
+			break
 	}
 })
 
@@ -68,6 +71,17 @@ client.on('messageCreate', async msg => {
 			if (msg.deletable) await msg.delete()
 
 			setTimeout(() => botReply.delete(), 5000)
+
+			msg.guild?.channels.fetch(process.env.MAIN_TEXT_CHANNEL!).then(channel => {
+				let txtChannel = channel as DiscordJS.TextChannel
+
+				txtChannel.send({
+					content: `@here\n${msg.author.toString()} właśnie spamował na przedrzeźniaczu! Wysłał wiadomość złożoną z aż ${msg.content.length} znaków!`,
+					allowedMentions: {
+						parse: ['everyone'],
+					},
+				})
+			})
 		} else {
 			if (msg.attachments.size > 0) msg.attachments.forEach(att => attachmentsArray.push(att))
 
@@ -91,5 +105,45 @@ client.on('messageCreate', async msg => {
 
 	if (msg.content.toLowerCase().includes('sus')) msg.reply('ඞ')
 })
+
+function shipHandler(interaction: DiscordJS.CommandInteraction<DiscordJS.CacheType>) {
+	const firstPartner = interaction.options.getMentionable('partner_1') as DiscordJS.GuildMember
+	const secondPartner = interaction.options.getMentionable('partner_2') as DiscordJS.GuildMember
+
+	if (firstPartner.user.bot || secondPartner.user.bot) {
+		interaction.reply({
+			content: 'Bot nie człowiek, uczucia nie odwzajemni ;)',
+			ephemeral: true,
+		})
+		return
+	}
+
+	if (firstPartner.id == secondPartner.id) {
+		interaction.reply({
+			content: 'Sam do siebie zawsze pasujesz w 100% ;)',
+			ephemeral: true,
+		})
+		return
+	}
+
+	const randomPercent = Math.round(Math.random() * 100)
+
+	const answerEmbed = new MessageEmbed()
+		.setColor('#e3175e')
+		.setTitle('Wasz ship!')
+		.setAuthor(interaction.guild?.me?.displayName!, client.user?.displayAvatarURL())
+		.setDescription(
+			`**${firstPartner.displayName}** i **${secondPartner.displayName}** pasują do siebie w ${randomPercent}%!`
+		)
+		.setImage(
+			randomPercent >= 50
+				? 'https://cdn.pixabay.com/photo/2015/10/16/19/18/balloon-991680_960_720.jpg'
+				: 'https://cdn.pixabay.com/photo/2017/01/09/10/48/heart-1966018_960_720.png'
+		)
+		.setTimestamp()
+		.setFooter(interaction.guild?.me?.displayName!, client.user?.displayAvatarURL())
+
+	interaction.reply({ embeds: [answerEmbed] })
+}
 
 client.login(process.env.TOKEN)
