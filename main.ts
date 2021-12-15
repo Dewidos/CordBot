@@ -62,7 +62,7 @@ client.on('messageCreate', async msg => {
 
 		if (msg.content.length > 30) {
 			const botReply = await msg.reply(
-				`Maksymalna długość wiadomości jaką mam powtórzyć to 30 znaków. Twoja wiadomość liczy aż ${msg.content.length}!`
+				`Maksymalna długość wiadomości jaką mam powtórzyć to 30 znaków. Twoja wiadomość składa się z aż ${msg.content.length} znaków!`
 			)
 
 			if (msg.deletable) await msg.delete()
