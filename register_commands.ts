@@ -10,10 +10,10 @@ const commands = [
 		.setName('ship')
 		.setDescription('Sprawdź czy twój wybranek do Ciebie pasuje!')
 		.addMentionableOption(option =>
-			option.setName('partner nr 1').setRequired(true).setDescription('Pierwsza osoba do zestawienia')
+			option.setName('partner_1').setRequired(true).setDescription('Pierwsza osoba do zestawienia')
 		)
 		.addMentionableOption(option =>
-			option.setName('partner nr 2').setRequired(true).setDescription('Druga osoba do zestawienia')
+			option.setName('partner_2').setRequired(true).setDescription('Druga osoba do zestawienia')
 		),
 ].map(command => command.toJSON())
 
