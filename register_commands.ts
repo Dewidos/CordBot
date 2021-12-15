@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders')
+import { SlashCommandBuilder } from '@discordjs/builders'
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 import 'dotenv/config'
@@ -6,6 +6,15 @@ import 'dotenv/config'
 const commands = [
 	new SlashCommandBuilder().setName('ping').setDescription('Odpowiadam pong!'),
 	new SlashCommandBuilder().setName('stalking').setDescription('Włącz stalkowanie!'),
+	new SlashCommandBuilder()
+		.setName('ship')
+		.setDescription('Sprawdź czy twój wybranek do Ciebie pasuje!')
+		.addMentionableOption(option =>
+			option.setName('partner nr 1').setRequired(true).setDescription('Pierwsza osoba do zestawienia')
+		)
+		.addMentionableOption(option =>
+			option.setName('partner nr 2').setRequired(true).setDescription('Druga osoba do zestawienia')
+		),
 ].map(command => command.toJSON())
 
 const rest = new REST({ version: '9' }).setToken(process.env.TOKEN)
