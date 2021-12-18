@@ -76,7 +76,9 @@ client.on('messageCreate', async msg => {
 				let txtChannel = channel as DiscordJS.TextChannel
 
 				txtChannel.send({
-					content: `@here\n${msg.author.toString()} właśnie spamował na przedrzeźniaczu! Wysłał wiadomość złożoną z aż ${msg.content.length} znaków!`,
+					content: `@here\n${msg.author.toString()} właśnie spamował na przedrzeźniaczu! Wysłał wiadomość złożoną z aż ${
+						msg.content.length
+					} znaków!`,
 					allowedMentions: {
 						parse: ['everyone'],
 					},
