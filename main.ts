@@ -13,6 +13,14 @@ client.on('ready', async () => {
 
 	if (typeof process.env.COUNTING_CHANNEL === 'undefined') return
 
+	const guild = await client.guilds.fetch(process.env.GUILD_ID!)
+
+	guild.channels.cache.forEach(async channel => {
+		if (!channel.isText()) return
+
+		await channel.messages.fetch({ limit: 100 })
+	})
+
 	const countingChannel = client.channels.cache.get(process.env.COUNTING_CHANNEL!) as DiscordJS.TextChannel
 
 	countingChannel.messages.fetch().then(messages => {
@@ -106,6 +114,29 @@ client.on('messageCreate', async msg => {
 	}
 
 	if (msg.content.toLowerCase().includes('sus')) msg.reply('ඞ')
+})
+
+client.on('messageDelete', async deletedMessage => {
+	if (deletedMessage.partial) await deletedMessage.fetch()
+
+	if (deletedMessage.author?.bot) return
+
+	deletedMessage.guild?.channels.fetch(process.env.MSGDELETE_REPORT_CHANNEL!).then(infoChannel => {
+		const msgChannel = deletedMessage.channel as DiscordJS.TextChannel
+		infoChannel = infoChannel as DiscordJS.TextChannel
+
+		const answerEmbed = new MessageEmbed()
+			.setColor('#ff6a00')
+			.setTitle('Usunięto wiadomość.')
+			.setAuthor(deletedMessage.guild?.me?.displayName!, client.user?.displayAvatarURL())
+			.addField('Autor wiadomości', deletedMessage.author?.tag || 'nie da się odczytać', true)
+			.addField('Kanał', msgChannel.name || 'nie da się odczytać', true)
+			.addField('Treść wiadomości', deletedMessage.content || '')
+			.setTimestamp()
+			.setFooter(deletedMessage.guild?.me?.displayName!, client.user?.displayAvatarURL())
+
+		infoChannel.send({ embeds: [answerEmbed] })
+	})
 })
 
 function shipHandler(interaction: DiscordJS.CommandInteraction<DiscordJS.CacheType>) {
