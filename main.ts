@@ -1,8 +1,12 @@
 import DiscordJS, { Intents, MessageAttachment, MessageEmbed } from 'discord.js'
+import { getConfig } from './getConfig'
+import { BotConfig } from './BotConfig'
 import 'dotenv/config'
 
+// const botConfig = getConfig()
+
 const playersToStalk: Array<string> = []
-let actualNumber = 0
+let countingChannelNumber = 0
 
 const client = new DiscordJS.Client({
 	intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILDS],
@@ -36,7 +40,7 @@ client.on('ready', async () => {
 				continue
 			}
 
-			if (lastNumber >= 0) actualNumber = lastNumber
+			if (lastNumber >= 0) countingChannelNumber = lastNumber
 		}
 	})
 })
@@ -106,7 +110,7 @@ client.on('messageCreate', async msg => {
 		if (isNaN(parsedNumber)) {
 			if (msg.deletable) msg.delete()
 		} else {
-			if (parsedNumber - 1 === actualNumber) actualNumber++
+			if (parsedNumber - 1 === countingChannelNumber) countingChannelNumber++
 			else if (msg.deletable) msg.delete()
 		}
 	} else if (playersToStalk.indexOf(msg.author.id) != -1) {
