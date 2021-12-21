@@ -7,6 +7,8 @@ export class BotConfig {
 	private db?: sqlite3.Database
 	private _guilds: GuildDatabaseEntry[] = []
 	private _countingChannel: CountingChannelDatabaseEntry[] = []
+	private _repeaterChannel: RepeaterChannelDatabaseEntry[] = []
+	private _deletedMessagesLogger: DeletedMessagesLoggerDatabaseEntry[] = []
 
 	/**
 	 * Initializes bot's configuration
@@ -32,6 +34,14 @@ export class BotConfig {
 		return this._countingChannel
 	}
 
+	public get repeaterChannel() {
+		return this._repeaterChannel
+	}
+
+	public get deletedMessagesLogger() {
+		return this._deletedMessagesLogger
+	}
+
 	public updateBotConfig(): boolean {
 		if (!this.db) this.openDbConnection()
 
@@ -45,6 +55,18 @@ export class BotConfig {
 			if (err) return console.error(err.message)
 
 			this._countingChannel = rows
+		})
+
+		this.db?.all("SELECT * from 'repeater_channel'", (err, rows) => {
+			if (err) return console.error(err.message)
+
+			this._repeaterChannel = rows
+		})
+
+		this.db?.all("SELECT * from 'deleted_messages_logger'", (err, rows) => {
+			if (err) return console.error(err.message)
+
+			this._deletedMessagesLogger = rows
 		})
 
 		this.closeDb()
@@ -90,10 +112,25 @@ export class BotConfig {
 export interface GuildDatabaseEntry {
 	id: number
 	discord_guild_id: string
+	main_channel_id: string
 }
 
 export interface CountingChannelDatabaseEntry {
 	id: number
 	guild_id: number
-	number: number
+	channel_id: string
+}
+
+export interface RepeaterChannelDatabaseEntry {
+	id: number
+	guild_id: number
+	channel_id: string
+	max_char_count: number
+}
+
+export interface DeletedMessagesLoggerDatabaseEntry {
+	id: number
+	guild_id: number
+	channel_id: string
+	log_bot_messages: boolean
 }

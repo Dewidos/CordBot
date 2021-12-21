@@ -1,9 +1,8 @@
 import DiscordJS, { Intents, MessageAttachment, MessageEmbed } from 'discord.js'
-import { getConfig } from './getConfig'
 import { BotConfig } from './BotConfig'
 import 'dotenv/config'
 
-// const botConfig = getConfig()
+const botConfig = new BotConfig(process.env.DB_PATH!)
 
 const playersToStalk: Array<string> = []
 let countingChannelNumber = 0
@@ -12,36 +11,44 @@ const client = new DiscordJS.Client({
 	intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILDS],
 })
 
-client.on('ready', async () => {
+client.on('ready', () => {
 	console.log('Hello world!')
+	console.log(botConfig.guilds)
 
-	if (typeof process.env.COUNTING_CHANNEL === 'undefined') return
+	botConfig.guilds.forEach(async guildEntry => {
+		const guild = await client.guilds.fetch(guildEntry.discord_guild_id)
 
-	const guild = await client.guilds.fetch(process.env.GUILD_ID!)
+		guild.channels.cache.forEach(async channel => {
+			if (!channel.isText()) return
 
-	guild.channels.cache.forEach(async channel => {
-		if (!channel.isText()) return
+			await channel.messages.fetch({ limit: 100 })
+		})
 
-		await channel.messages.fetch({ limit: 100 })
-	})
+		let countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id == guildEntry.id)?.channel_id
 
-	const countingChannel = client.channels.cache.get(process.env.COUNTING_CHANNEL!) as DiscordJS.TextChannel
-
-	countingChannel.messages.fetch().then(messages => {
-		let lastNumber: number
-
-		for (let i = messages.size - 1; i >= 0; i--) {
-			let msg = messages.at(i)!
-
-			lastNumber = parseInt(msg.content!)
-
-			if (isNaN(lastNumber)) {
-				if (msg.deletable) msg.delete()
-				continue
-			}
-
-			if (lastNumber >= 0) countingChannelNumber = lastNumber
+		if (!countingChannelId) {
+			console.error(`Guild with id ${guild.id} isn't configured.`)
+			return
 		}
+
+		const countingChannel = client.channels.cache.get(countingChannelId) as DiscordJS.TextChannel
+
+		countingChannel.messages.fetch().then(messages => {
+			let lastNumber: number
+
+			for (let i = messages.size - 1; i >= 0; i--) {
+				let msg = messages.at(i)!
+
+				lastNumber = parseInt(msg.content!)
+
+				if (isNaN(lastNumber)) {
+					if (msg.deletable) msg.delete()
+					continue
+				}
+
+				if (lastNumber >= 0) countingChannelNumber = lastNumber
+			}
+		})
 	})
 })
 
@@ -72,10 +79,29 @@ client.on('interactionCreate', async interaction => {
 client.on('messageCreate', async msg => {
 	if (msg.author.bot) return
 
-	if (msg.channel.id === process.env.REPEATER_CHANNEL) {
+	const dbId = botConfig.guilds.find(guildEntry => guildEntry.discord_guild_id === msg.guild?.id)?.id
+
+	if (!dbId) {
+		console.error(`Guild with id ${msg.guild?.id} isn't configured.`)
+		return
+	}
+
+	let repeaterChannelId = botConfig.repeaterChannel.find(repeaterEntry => repeaterEntry.guild_id === dbId)?.channel_id
+	let repeaterMaxCharCount = botConfig.repeaterChannel.find(
+		repeaterEntry => repeaterEntry.guild_id === dbId
+	)?.max_char_count
+	let countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id === dbId)?.channel_id
+	let mainChannelId = botConfig.guilds.find(guildEntry => guildEntry.id === dbId)?.main_channel_id
+
+	if (!repeaterChannelId || typeof repeaterMaxCharCount === 'undefined' || !countingChannelId || !mainChannelId) {
+		console.error(`Guild with id ${msg.guild?.id} has invalid configuration.`)
+		return
+	}
+
+	if (msg.channel.id === repeaterChannelId) {
 		const attachmentsArray: Array<MessageAttachment> = []
 
-		if (msg.content.length > 30) {
+		if (msg.content.length > repeaterMaxCharCount) {
 			const botReply = await msg.reply(
 				`Maksymalna długość wiadomości jaką mam powtórzyć to 30 znaków. Twoja wiadomość składa się z aż ${msg.content.length} znaków!`
 			)
@@ -84,7 +110,7 @@ client.on('messageCreate', async msg => {
 
 			setTimeout(() => botReply.delete(), 5000)
 
-			msg.guild?.channels.fetch(process.env.MAIN_TEXT_CHANNEL!).then(channel => {
+			msg.guild?.channels.fetch(mainChannelId).then(channel => {
 				let txtChannel = channel as DiscordJS.TextChannel
 
 				txtChannel.send({
@@ -104,7 +130,7 @@ client.on('messageCreate', async msg => {
 				files: attachmentsArray,
 			})
 		}
-	} else if (msg.channel.id === process.env.COUNTING_CHANNEL) {
+	} else if (msg.channel.id === countingChannelId) {
 		let parsedNumber = parseInt(msg.content)
 
 		if (isNaN(parsedNumber)) {
@@ -123,9 +149,26 @@ client.on('messageCreate', async msg => {
 client.on('messageDelete', async deletedMessage => {
 	if (deletedMessage.partial) await deletedMessage.fetch()
 
-	if (deletedMessage.author?.bot) return
+	const dbId = botConfig.guilds.find(guildEntry => guildEntry.discord_guild_id === deletedMessage.guild?.id)?.id
 
-	deletedMessage.guild?.channels.fetch(process.env.MSGDELETE_REPORT_CHANNEL!).then(infoChannel => {
+	if (!dbId) {
+		console.error(`Guild with id ${deletedMessage.guild?.id} isn't configured.`)
+		return
+	}
+
+	let dMLChannelId = botConfig.deletedMessagesLogger.find(loggerEntry => loggerEntry.guild_id === dbId)?.channel_id
+	let logBotMessages = botConfig.deletedMessagesLogger.find(
+		loggerEntry => loggerEntry.guild_id === dbId
+	)?.log_bot_messages
+
+	if (!dMLChannelId || typeof logBotMessages === 'undefined') {
+		console.error(`Guild with id ${deletedMessage.guild?.id} has invalid configuration.`)
+		return
+	}
+
+	if (deletedMessage.author?.bot && !logBotMessages) return
+
+	deletedMessage.guild?.channels.fetch(dMLChannelId).then(infoChannel => {
 		const msgChannel = deletedMessage.channel as DiscordJS.TextChannel
 		infoChannel = infoChannel as DiscordJS.TextChannel
 
