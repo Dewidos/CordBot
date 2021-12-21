@@ -13,7 +13,6 @@ const client = new DiscordJS.Client({
 
 client.on('ready', () => {
 	console.log('Hello world!')
-	console.log(botConfig.guilds)
 
 	botConfig.guilds.forEach(async guildEntry => {
 		const guild = await client.guilds.fetch(guildEntry.discord_guild_id)
