@@ -29,7 +29,7 @@ export default async function (msg: Message, botConfig: BotConfig, dbId: number)
 				let txtChannel = channel as TextChannel
 
 				txtChannel.send({
-					content: `@here\n${msg.author.toString()} właśnie spamował na przedrzeźniaczu! Wysłał wiadomość złożoną z aż ${
+					content: `${msg.author.toString()} właśnie spamował na przedrzeźniaczu! Wysłał wiadomość złożoną z aż ${
 						msg.content.length
 					} znaków!`,
 					allowedMentions: {
