@@ -4,7 +4,6 @@ import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import featureHandlers from './featureHandlers/featureHandlers'
-import shipHandler from './commands/ship'
 
 const botConfig = new BotConfig(process.env.DB_PATH!)
 
