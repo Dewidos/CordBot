@@ -10,11 +10,14 @@ export default async function (deletedMessage: Message, botConfig: BotConfig, di
 	}
 
 	let dMLChannelId = botConfig.deletedMessagesLogger.find(loggerEntry => loggerEntry.guild_id === dbId)?.channel_id
+
+	if (!dMLChannelId) return
+
 	let logBotMessages = botConfig.deletedMessagesLogger.find(
 		loggerEntry => loggerEntry.guild_id === dbId
 	)?.log_bot_messages
 
-	if (!dMLChannelId || typeof logBotMessages === 'undefined') {
+	if (typeof logBotMessages === 'undefined') {
 		console.error(`Guild with id ${deletedMessage.guild?.id} has invalid configuration.`)
 		return
 	}
