@@ -1,6 +1,10 @@
 import DiscordJS, { Intents, MessageAttachment, MessageEmbed } from 'discord.js'
 import { BotConfig } from './BotConfig'
 import 'dotenv/config'
+import fs from 'fs'
+import path from 'path'
+import featureHandlers from './featureHandlers/featureHandlers'
+import shipHandler from './commands/ship'
 
 const botConfig = new BotConfig(process.env.DB_PATH!)
 
@@ -23,7 +27,7 @@ client.on('ready', () => {
 			await channel.messages.fetch({ limit: 100 })
 		})
 
-		let countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id == guildEntry.id)?.channel_id
+		const countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id == guildEntry.id)?.channel_id
 
 		if (!countingChannelId) {
 			console.error(`Guild with id ${guild.id} isn't configured.`)
@@ -69,8 +73,23 @@ client.on('interactionCreate', async interaction => {
 				await interaction.reply('Od teraz nie będę Ciebie stalkować :(')
 			}
 			break
-		case 'ship':
-			shipHandler(interaction)
+		default:
+			const commandDir = './commands'
+			const extension = path.extname(__filename)
+			const files = fs.readdirSync(commandDir)
+
+			const commandFile = files.find(file => file.startsWith(`${commandName}${extension}`))
+
+			if (commandFile === undefined) {
+				interaction.reply('Nieznana komenda.')
+				break
+			}
+
+			try {
+				require(`${commandDir}/${commandFile}`).default(interaction, client, botConfig)
+			} catch (error) {
+				console.error(error)
+			}
 			break
 	}
 })
@@ -85,61 +104,26 @@ client.on('messageCreate', async msg => {
 		return
 	}
 
-	let repeaterChannelId = botConfig.repeaterChannel.find(repeaterEntry => repeaterEntry.guild_id === dbId)?.channel_id
-	let repeaterMaxCharCount = botConfig.repeaterChannel.find(
-		repeaterEntry => repeaterEntry.guild_id === dbId
-	)?.max_char_count
-	let countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id === dbId)?.channel_id
-	let mainChannelId = botConfig.guilds.find(guildEntry => guildEntry.id === dbId)?.main_channel_id
+	const repeaterChannelId = botConfig.repeaterChannel.find(repeaterEntry => repeaterEntry.guild_id === dbId)?.channel_id
+	const countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id === dbId)?.channel_id
 
-	if (!repeaterChannelId || typeof repeaterMaxCharCount === 'undefined' || !countingChannelId || !mainChannelId) {
+	if (!repeaterChannelId || !countingChannelId) {
 		console.error(`Guild with id ${msg.guild?.id} has invalid configuration.`)
 		return
 	}
 
-	if (msg.channel.id === repeaterChannelId) {
-		const attachmentsArray: Array<MessageAttachment> = []
-
-		if (msg.content.length > repeaterMaxCharCount) {
-			const botReply = await msg.reply(
-				`Maksymalna długość wiadomości jaką mam powtórzyć to 30 znaków. Twoja wiadomość składa się z aż ${msg.content.length} znaków!`
-			)
-
-			if (msg.deletable) await msg.delete()
-
-			setTimeout(() => botReply.delete(), 5000)
-
-			msg.guild?.channels.fetch(mainChannelId).then(channel => {
-				let txtChannel = channel as DiscordJS.TextChannel
-
-				txtChannel.send({
-					content: `@here\n${msg.author.toString()} właśnie spamował na przedrzeźniaczu! Wysłał wiadomość złożoną z aż ${
-						msg.content.length
-					} znaków!`,
-					allowedMentions: {
-						parse: ['everyone'],
-					},
-				})
-			})
-		} else {
-			if (msg.attachments.size > 0) msg.attachments.forEach(att => attachmentsArray.push(att))
-
-			await msg.channel.send({
-				content: msg.content == '' ? '\n' : msg.content,
-				files: attachmentsArray,
-			})
-		}
-	} else if (msg.channel.id === countingChannelId) {
-		let parsedNumber = parseInt(msg.content)
-
-		if (isNaN(parsedNumber)) {
-			if (msg.deletable) msg.delete()
-		} else {
-			if (parsedNumber - 1 === countingChannelNumber) countingChannelNumber++
-			else if (msg.deletable) msg.delete()
-		}
-	} else if (playersToStalk.indexOf(msg.author.id) != -1) {
-		await msg.reply(`Siema ${msg.author.username}!`)
+	switch (msg.channel.id) {
+		case repeaterChannelId:
+			await featureHandlers.repeater(msg, botConfig, dbId)
+			break
+		case countingChannelId:
+			featureHandlers.countingChannel(msg, countingChannelNumber)
+			break
+		default:
+			if (playersToStalk.indexOf(msg.author.id) != -1) {
+				await msg.reply(`Siema ${msg.author.username}!`)
+			}
+			break
 	}
 
 	if (msg.content.toLowerCase().includes('sus')) msg.reply('ඞ')
@@ -148,81 +132,11 @@ client.on('messageCreate', async msg => {
 client.on('messageDelete', async deletedMessage => {
 	if (deletedMessage.partial) await deletedMessage.fetch()
 
-	const dbId = botConfig.guilds.find(guildEntry => guildEntry.discord_guild_id === deletedMessage.guild?.id)?.id
-
-	if (!dbId) {
-		console.error(`Guild with id ${deletedMessage.guild?.id} isn't configured.`)
-		return
-	}
-
-	let dMLChannelId = botConfig.deletedMessagesLogger.find(loggerEntry => loggerEntry.guild_id === dbId)?.channel_id
-	let logBotMessages = botConfig.deletedMessagesLogger.find(
-		loggerEntry => loggerEntry.guild_id === dbId
-	)?.log_bot_messages
-
-	if (!dMLChannelId || typeof logBotMessages === 'undefined') {
-		console.error(`Guild with id ${deletedMessage.guild?.id} has invalid configuration.`)
-		return
-	}
-
-	if (deletedMessage.author?.bot && !logBotMessages) return
-
-	deletedMessage.guild?.channels.fetch(dMLChannelId).then(infoChannel => {
-		const msgChannel = deletedMessage.channel as DiscordJS.TextChannel
-		infoChannel = infoChannel as DiscordJS.TextChannel
-
-		const answerEmbed = new MessageEmbed()
-			.setColor('#ff6a00')
-			.setTitle('Usunięto wiadomość.')
-			.setAuthor(deletedMessage.guild?.me?.displayName!, client.user?.displayAvatarURL())
-			.addField('Autor wiadomości', deletedMessage.author?.tag || 'nie da się odczytać', true)
-			.addField('Kanał', msgChannel.name || 'nie da się odczytać', true)
-			.addField('Treść wiadomości', deletedMessage.content || '')
-			.setTimestamp()
-			.setFooter(deletedMessage.guild?.me?.displayName!, client.user?.displayAvatarURL())
-
-		infoChannel.send({ embeds: [answerEmbed] })
-	})
+	featureHandlers.messageDeletionLogger(
+		<DiscordJS.Message>deletedMessage,
+		botConfig,
+		client.user?.displayAvatarURL() || ''
+	)
 })
-
-function shipHandler(interaction: DiscordJS.CommandInteraction<DiscordJS.CacheType>) {
-	const firstPartner = interaction.options.getMentionable('partner_1') as DiscordJS.GuildMember
-	const secondPartner = interaction.options.getMentionable('partner_2') as DiscordJS.GuildMember
-
-	if (firstPartner.user.bot || secondPartner.user.bot) {
-		interaction.reply({
-			content: 'Bot nie człowiek, uczucia nie odwzajemni ;)',
-			ephemeral: true,
-		})
-		return
-	}
-
-	if (firstPartner.id == secondPartner.id) {
-		interaction.reply({
-			content: 'Sam do siebie zawsze pasujesz w 100% ;)',
-			ephemeral: true,
-		})
-		return
-	}
-
-	const randomPercent = Math.round(Math.random() * 100)
-
-	const answerEmbed = new MessageEmbed()
-		.setColor('#e3175e')
-		.setTitle('Wasz ship!')
-		.setAuthor(interaction.guild?.me?.displayName!, client.user?.displayAvatarURL())
-		.setDescription(
-			`**${firstPartner.displayName}** i **${secondPartner.displayName}** pasują do siebie w ${randomPercent}%!`
-		)
-		.setImage(
-			randomPercent >= 50
-				? 'https://cdn.pixabay.com/photo/2015/10/16/19/18/balloon-991680_960_720.jpg'
-				: 'https://cdn.pixabay.com/photo/2017/01/09/10/48/heart-1966018_960_720.png'
-		)
-		.setTimestamp()
-		.setFooter(interaction.guild?.me?.displayName!, client.user?.displayAvatarURL())
-
-	interaction.reply({ embeds: [answerEmbed] })
-}
 
 client.login(process.env.TOKEN)
