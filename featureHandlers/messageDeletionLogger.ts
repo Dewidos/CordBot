@@ -13,7 +13,7 @@ export default async function (deletedMessage: Message, botConfig: BotConfig, di
 
 	if (!dMLChannelId) return
 
-	let logBotMessages = botConfig.deletedMessagesLogger.find(
+	const logBotMessages = botConfig.deletedMessagesLogger.find(
 		loggerEntry => loggerEntry.guild_id === dbId
 	)?.log_bot_messages
 
