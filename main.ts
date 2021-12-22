@@ -116,7 +116,7 @@ client.on('messageCreate', async msg => {
 			break
 		case countingChannelId:
 			if (!countingChannelId) break
-			featureHandlers.countingChannel(msg, countingChannelNumber)
+			countingChannelNumber = featureHandlers.countingChannel(msg, countingChannelNumber)
 			break
 		default:
 			if (playersToStalk.indexOf(msg.author.id) != -1) {

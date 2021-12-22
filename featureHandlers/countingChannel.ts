@@ -1,6 +1,6 @@
 import { Message } from 'discord.js'
 
-export default function (msg: Message, countingChannelNumber: number) {
+export default function (msg: Message, countingChannelNumber: number): number {
 	let parsedNumber = parseInt(msg.content)
 
 	if (isNaN(parsedNumber)) {
@@ -9,4 +9,6 @@ export default function (msg: Message, countingChannelNumber: number) {
 		if (parsedNumber - 1 === countingChannelNumber) countingChannelNumber++
 		else if (msg.deletable) msg.delete()
 	}
+
+	return countingChannelNumber
 }
