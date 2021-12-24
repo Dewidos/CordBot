@@ -6,7 +6,7 @@ export default function (msg: Message) {
 	msg.channel.messages.fetch().then(messages => {
 		let lastNumber: number
 
-		for (let i = messages.size - 1; i >= 0; i--) {
+		for (let i = messages.size - 1; i > 0; i--) {
 			let msg = messages.at(i)!
 
 			lastNumber = parseInt(msg.content!)
