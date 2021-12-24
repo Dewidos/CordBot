@@ -38,11 +38,13 @@ client.on('interactionCreate', async interaction => {
 			await interaction.reply('pong')
 			break
 		case 'stalking':
-			if (playersToStalk.indexOf(interaction.user.id) == -1) {
-				playersToStalk.push(interaction.user.id)
+			const stalkString = `${interaction.guild?.id};${interaction.user.id}`
+
+			if (playersToStalk.indexOf(stalkString) == -1) {
+				playersToStalk.push(stalkString)
 				await interaction.reply('Od teraz będę Cię stalkował :)')
 			} else {
-				playersToStalk.splice(playersToStalk.indexOf(interaction.user.id), 1)
+				playersToStalk.splice(playersToStalk.indexOf(stalkString), 1)
 				await interaction.reply('Od teraz nie będę Ciebie stalkować :(')
 			}
 			break
@@ -93,7 +95,9 @@ client.on('messageCreate', async msg => {
 			featureHandlers.countingChannel(msg)
 			break
 		default:
-			if (playersToStalk.indexOf(msg.author.id) != -1) {
+			const stalkString = `${msg.guild?.id};${msg.author.id}`
+
+			if (playersToStalk.indexOf(stalkString) != -1) {
 				await msg.reply(`Siema ${msg.author.username}!`)
 			}
 			break
