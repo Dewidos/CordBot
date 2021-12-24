@@ -15,7 +15,7 @@ export default async function (msg: Message, botConfig: BotConfig, dbId: number)
 		return
 	}
 
-	if (msg.content.length > repeaterMaxCharCount) {
+	if (msg.content.length > repeaterMaxCharCount && repeaterMaxCharCount !== -1) {
 		const botReply = await msg.reply(
 			`Maksymalna długość wiadomości jaką mam powtórzyć to ${repeaterMaxCharCount} znaków. Twoja wiadomość składa się z aż ${msg.content.length} znaków!`
 		)

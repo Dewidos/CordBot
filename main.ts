@@ -111,11 +111,9 @@ client.on('messageCreate', async msg => {
 
 	switch (msg.channel.id) {
 		case repeaterChannelId:
-			if (!repeaterChannelId) break
 			await featureHandlers.repeater(msg, botConfig, dbId)
 			break
 		case countingChannelId:
-			if (!countingChannelId) break
 			countingChannelNumber = featureHandlers.countingChannel(msg, countingChannelNumber)
 			break
 		default:

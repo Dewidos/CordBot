@@ -124,7 +124,7 @@ export class BotConfig {
 			}
 
 			const promise = new Promise<number>((resolve2, reject2) => {
-				this.db?.run('INSERT INTO guilds VALUES (NULL, ?, NULL)', guild.id, callback)
+				this.db?.run('INSERT INTO guilds VALUES (NULL, ?, NULL, false)', guild.id, callback)
 				this.db?.get('SELECT id FROM guilds WHERE discord_guild_id=?', guild.id, (err, row) => {
 					if (err !== null) {
 						console.error(err.message)
@@ -148,6 +148,25 @@ export class BotConfig {
 				.catch(() => {
 					reject(errorMessage)
 				})
+		})
+	}
+
+	public async updateGuild(tableName: DatabaseTables, fieldName: string, data: string, dbId: number): Promise<boolean> {
+		return new Promise<boolean>((resolve, reject) => {
+			if (!this.db) this.openDbConnection()
+
+			let sql
+
+			if (tableName === DatabaseTables.guilds) sql = `UPDATE ${tableName} SET ${fieldName}=? WHERE id=?`
+			else sql = `UPDATE ${tableName} SET ${fieldName}=? WHERE guild_id=?`
+
+			this.db?.run(sql, [data, dbId], err => {
+				if (err) {
+					reject(err.message)
+				} else resolve(true)
+			})
+
+			this.closeDb()
 		})
 	}
 
@@ -213,10 +232,18 @@ export class BotConfig {
 	}
 }
 
+export enum DatabaseTables {
+	guilds = 'guilds',
+	countingChannel = 'counting_channel',
+	repeaterChannel = 'repeater_channel',
+	deletedMessagesLogger = 'deleted_messages_logger',
+}
+
 export interface GuildDatabaseEntry {
 	id: number
 	discord_guild_id: string
 	main_channel_id: string
+	was_configured: boolean
 }
 
 export interface CountingChannelDatabaseEntry {

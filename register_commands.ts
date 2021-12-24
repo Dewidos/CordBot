@@ -6,6 +6,7 @@ import 'dotenv/config'
 const commands = [
 	new SlashCommandBuilder().setName('ping').setDescription('Odpowiadam pong!'),
 	new SlashCommandBuilder().setName('stalking').setDescription('Włącz stalkowanie!'),
+	new SlashCommandBuilder().setName('konfiguracja').setDescription('Uruchom proces konfiguracji bota.'),
 	new SlashCommandBuilder()
 		.setName('ship')
 		.setDescription('Sprawdź czy twój wybranek do Ciebie pasuje!')
