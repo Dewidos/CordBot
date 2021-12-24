@@ -8,7 +8,6 @@ import featureHandlers from './featureHandlers/featureHandlers'
 const botConfig = new BotConfig(process.env.DB_PATH!)
 
 const playersToStalk: Array<string> = []
-let countingChannelNumber = 0
 
 const client = new DiscordJS.Client({
 	intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.DIRECT_MESSAGES],
@@ -25,29 +24,6 @@ client.on('ready', () => {
 			if (!channel.isText()) return
 
 			await channel.messages.fetch({ limit: 100 })
-		})
-
-		const countingChannelId = botConfig.countingChannel.find(cChEntry => cChEntry.guild_id == guildEntry.id)?.channel_id
-
-		if (!countingChannelId) return
-
-		const countingChannel = client.channels.cache.get(countingChannelId) as DiscordJS.TextChannel
-
-		countingChannel.messages.fetch().then(messages => {
-			let lastNumber: number
-
-			for (let i = messages.size - 1; i >= 0; i--) {
-				let msg = messages.at(i)!
-
-				lastNumber = parseInt(msg.content!)
-
-				if (isNaN(lastNumber)) {
-					if (msg.deletable) msg.delete()
-					continue
-				}
-
-				if (lastNumber >= 0) countingChannelNumber = lastNumber
-			}
 		})
 	})
 })
@@ -114,7 +90,7 @@ client.on('messageCreate', async msg => {
 			await featureHandlers.repeater(msg, botConfig, dbId)
 			break
 		case countingChannelId:
-			countingChannelNumber = featureHandlers.countingChannel(msg, countingChannelNumber)
+			featureHandlers.countingChannel(msg)
 			break
 		default:
 			if (playersToStalk.indexOf(msg.author.id) != -1) {
