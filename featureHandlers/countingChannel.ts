@@ -1,7 +1,7 @@
 import { Message } from 'discord.js'
 
 export default function (msg: Message) {
-	let countingChannelNumber
+	let countingChannelNumber = 0
 
 	msg.channel.messages.fetch().then(messages => {
 		let lastNumber: number
@@ -18,14 +18,14 @@ export default function (msg: Message) {
 
 			if (lastNumber >= 0) countingChannelNumber = lastNumber
 		}
+
+		let parsedNumber = parseInt(msg.content)
+
+		if (isNaN(parsedNumber)) {
+			if (msg.deletable) msg.delete()
+		} else {
+			if (parsedNumber - 1 === countingChannelNumber) countingChannelNumber++
+			else if (msg.deletable) msg.delete()
+		}
 	})
-
-	let parsedNumber = parseInt(msg.content)
-
-	if (isNaN(parsedNumber)) {
-		if (msg.deletable) msg.delete()
-	} else {
-		if (parsedNumber - 1 === countingChannelNumber) countingChannelNumber++
-		else if (msg.deletable) msg.delete()
-	}
 }
