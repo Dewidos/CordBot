@@ -32,9 +32,13 @@ export default async function (deletedMessage: Message, botConfig: BotConfig, di
 			.setColor('#ff6a00')
 			.setTitle('Usunięto wiadomość.')
 			.setAuthor(deletedMessage.guild?.me?.displayName!, displayAvatarURL)
-			.addField('Autor wiadomości', deletedMessage.author?.tag || 'nie da się odczytać', true)
-			.addField('Kanał', msgChannel.name || 'nie da się odczytać', true)
-			.addField('Treść wiadomości', deletedMessage.content || '')
+			.addField('Autor wiadomości', deletedMessage.author?.tag || '*nie da się odczytać*', true)
+			.addField('Kanał', msgChannel.name || '*nie da się odczytać*', true)
+			.addField(
+				'Obecność załączników',
+				deletedMessage.attachments.size > 0 ? `Tak (${deletedMessage.attachments.size})` : 'Nie'
+			)
+			.addField('Treść wiadomości', deletedMessage.content || '*brak*')
 			.setTimestamp()
 			.setFooter(deletedMessage.guild?.me?.displayName!, displayAvatarURL)
 
