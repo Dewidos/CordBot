@@ -4,8 +4,12 @@ import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import featureHandlers from './featureHandlers/featureHandlers'
+import { argv } from 'process'
 
-const botConfig = new BotConfig(process.env.DB_PATH!)
+const botConfig = new BotConfig(
+	process.env.DB_PATH!,
+	argv.find(value => value.toLowerCase() == '--skipdbupdate') !== undefined
+)
 
 const playersToStalk: Array<string> = []
 
@@ -17,18 +21,26 @@ const client = new DiscordJS.Client({
 client.on('ready', () => {
 	console.log('Hello world!')
 
-	botConfig.guilds.forEach(async guildEntry => {
-		const guild = await client.guilds.fetch(guildEntry.discord_guild_id)
+	const loadMessages = () =>
+		botConfig.guilds.forEach(async guildEntry => {
+			const guild = await client.guilds.fetch(guildEntry.discord_guild_id)
 
-		guild.channels.cache.forEach(async channel => {
-			if (!channel.isText()) return
+			guild.channels.cache.forEach(async channel => {
+				if (!channel.isText()) return
 
-			await channel.messages.fetch({ limit: 100 })
+				await channel.messages.fetch({ limit: 100 })
+			})
 		})
-	})
+
+	if (!botConfig.isReady) botConfig.once('ready', loadMessages)
+	else loadMessages()
 })
 
 client.on('interactionCreate', async interaction => {
+	if (interaction.isSelectMenu()) {
+		if (interaction.customId === 'guildSelect') featureHandlers.dmGuildSelectHandler(interaction, client)
+	}
+
 	if (!interaction.isCommand()) return
 
 	const { commandName } = interaction

@@ -1,6 +1,6 @@
 import repeater from './repeater'
 import countingChannel from './countingChannel'
 import messageDeletionLogger from './messageDeletionLogger'
-import dmHandler from './dmHandler'
+import dmHandler, { dmGuildSelectHandler } from './dmHandler'
 
-export default { repeater, countingChannel, messageDeletionLogger, dmHandler }
+export default { repeater, countingChannel, messageDeletionLogger, dmHandler, dmGuildSelectHandler }

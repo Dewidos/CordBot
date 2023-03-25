@@ -1,4 +1,4 @@
-cd /home/pi/CordBot
+cd ~/CordBot
 echo "Pulling the latest changes from the repository..."
 git pull
 echo "Compiling the bot's code..."

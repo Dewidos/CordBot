@@ -2,3 +2,5 @@ node_modules
 *.js
 *.db
 *.code-workspace
+.env
+awserv.pem

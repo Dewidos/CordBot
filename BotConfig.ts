@@ -1,30 +1,67 @@
 import { Guild } from 'discord.js'
 import sqlite3 from 'sqlite3'
+import { AWSConfig } from './AWSConfig'
+import path from 'path'
+import EventEmitter from 'events'
+
 /**
  * Stores discord bot's config
  */
-export class BotConfig {
+export class BotConfig extends EventEmitter {
 	private dbFile: string
 	private db?: sqlite3.Database
+	private _isReady: boolean = false
 	private _guilds: GuildDatabaseEntry[] = []
 	private _countingChannel: CountingChannelDatabaseEntry[] = []
 	private _repeaterChannel: RepeaterChannelDatabaseEntry[] = []
 	private _deletedMessagesLogger: DeletedMessagesLoggerDatabaseEntry[] = []
 
+	private aws: AWSConfig
+
 	/**
 	 * Initializes bot's configuration
 	 * @param  {string} dbFile - path to database file
+	 * @param {boolean} skipDbFileUpdate - skip AWS sync on startup
 	 * @param  {(errorMessage:string|undefined)=>void} callback ran after constructor execution, receives error message when error has occured
 	 */
-	constructor(dbFile: string, callback?: (errorMessage: string | undefined) => void) {
+	constructor(
+		dbFile: string,
+		skipDbFileUpdate: boolean = false,
+		callback?: (errorMessage: string | undefined) => void
+	) {
+		super()
+
 		this.dbFile = dbFile
+		this.aws = new AWSConfig(path.basename(dbFile))
 
-		let errMsg
+		const afterAwsInteraction = () => {
+			let errMsg
 
-		if (!this.openDbConnection()) errMsg = "Can't connect to database"
-		else if (!this.updateBotConfig()) errMsg = "Can't download bot's config from database"
+			if (!this.openDbConnection()) errMsg = "Can't connect to database"
+			else if (!this.updateBotConfig()) errMsg = "Can't download bot's config from database"
 
-		if (callback) callback(errMsg)
+			if (callback) callback(errMsg)
+
+			this._isReady = true
+			this.emit('ready')
+		}
+
+		if (!skipDbFileUpdate) {
+			this.aws
+				.getDbFile()
+				.then(() => afterAwsInteraction())
+				.catch(err => {
+					console.log(err)
+					afterAwsInteraction()
+				})
+		} else {
+			console.log('totally not updating')
+			afterAwsInteraction()
+		}
+	}
+
+	public get isReady() {
+		return this._isReady
 	}
 
 	public get guilds() {
@@ -50,6 +87,7 @@ export class BotConfig {
 			new Promise<boolean>((resolve, reject) => {
 				this.db?.all("SELECT * from 'guilds'", (err, rows) => {
 					if (err) {
+						console.log('nonozjeba')
 						console.error(err.message)
 						reject()
 						return
@@ -141,7 +179,8 @@ export class BotConfig {
 					this.db?.run('INSERT INTO repeater_channel VALUES (NULL, ?, NULL, 30)', dbId, callback)
 					this.db?.run('INSERT INTO deleted_messages_logger VALUES (NULL, ?, NULL, false)', dbId, callback)
 
-					await this.updateBotConfig()
+					await this.updateBotConfig().catch(() => console.log("Couldn't update bot's config"))
+					await this.aws.uploadDbFile().catch(console.log)
 
 					resolve(true)
 				})
@@ -160,10 +199,13 @@ export class BotConfig {
 			if (tableName === DatabaseTables.guilds) sql = `UPDATE ${tableName} SET ${fieldName}=? WHERE id=?`
 			else sql = `UPDATE ${tableName} SET ${fieldName}=? WHERE guild_id=?`
 
-			this.db?.run(sql, [data, dbId], err => {
+			this.db?.run(sql, [data, dbId], async err => {
 				if (err) {
 					reject(err.message)
-				} else resolve(true)
+				} else {
+					await this.aws.uploadDbFile().catch(console.log)
+					resolve(true)
+				}
 			})
 
 			this.closeDb()
@@ -192,7 +234,9 @@ export class BotConfig {
 			this.db?.run('DELETE FROM repeater_channel WHERE guild_id=?', dbId, callback)
 			this.db?.run('DELETE FROM deleted_messages_logger WHERE guild_id=?', dbId, callback)
 
-			await this.updateBotConfig()
+			await this.updateBotConfig().catch(() => console.log("Couldn't update bot's config"))
+			await this.aws.uploadDbFile().catch(console.log)
+
 			resolve(true)
 		})
 	}
@@ -230,6 +274,11 @@ export class BotConfig {
 
 		return true
 	}
+}
+
+export declare interface BotConfig {
+	on(event: 'ready', listener: () => void): this
+	on(event: string, listener: Function): this
 }
 
 export enum DatabaseTables {
